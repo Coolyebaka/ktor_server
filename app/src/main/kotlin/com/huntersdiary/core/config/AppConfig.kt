@@ -10,6 +10,7 @@ data class JwtConfig(
     val secret: String?,
     val issuer: String,
     val audience: String,
+    val tokenTtlSeconds: Long,
 )
 
 data class FirestoreConfig(
@@ -25,6 +26,7 @@ object AppConfigLoader {
                 secret = value("JWT_SECRET")?.takeIf(String::isNotBlank),
                 issuer = value("JWT_ISSUER") ?: DEFAULT_JWT_ISSUER,
                 audience = value("JWT_AUDIENCE") ?: DEFAULT_JWT_AUDIENCE,
+                tokenTtlSeconds = value("JWT_TTL_SECONDS")?.toLongOrNull() ?: DEFAULT_JWT_TTL_SECONDS,
             ),
             firestore = FirestoreConfig(
                 projectId = value("FIRESTORE_PROJECT_ID")?.takeIf(String::isNotBlank),
@@ -38,4 +40,5 @@ object AppConfigLoader {
     private const val DEFAULT_PORT = 8080
     private const val DEFAULT_JWT_ISSUER = "hunter-diary"
     private const val DEFAULT_JWT_AUDIENCE = "hunter-diary-api"
+    private const val DEFAULT_JWT_TTL_SECONDS = 86_400L
 }
