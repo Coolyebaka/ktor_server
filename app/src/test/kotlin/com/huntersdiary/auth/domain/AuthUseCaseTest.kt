@@ -31,7 +31,7 @@ class AuthUseCaseTest {
         val useCase = RegisterUseCase(repository, passwordHasher, jwtService)
 
         val result = useCase.execute("Hunter@Test.Com", "secret-password")
-        val decodedToken = JWT.decode(result.token)
+        val decodedToken = jwtService.verifier().verify(result.token)
 
         assertEquals("hunter@test.com", result.user.email)
         assertEquals(result.user.id, decodedToken.getClaim(JwtService.USER_ID_CLAIM).asString())
@@ -60,9 +60,11 @@ class AuthUseCaseTest {
         val registered = registerUseCase.execute("hunter@test.com", "secret-password")
 
         val loggedIn = loginUseCase.execute("hunter@test.com", "secret-password")
+        val decodedToken = JWT.decode(loggedIn.token)
 
         assertEquals(registered.user.id, loggedIn.user.id)
         assertNotNull(loggedIn.token)
+        assertEquals(registered.user.id, decodedToken.getClaim(JwtService.USER_ID_CLAIM).asString())
     }
 
     @Test

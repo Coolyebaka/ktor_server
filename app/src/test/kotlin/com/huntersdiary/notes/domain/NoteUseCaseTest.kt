@@ -9,7 +9,19 @@ import org.junit.jupiter.api.Test
 
 class NoteUseCaseTest {
     @Test
-    fun `user can only read own notes`() = runBlocking {
+    fun `create note stores note for user`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
+
+        val note = createNoteUseCase.execute("user-1", sampleInput(location = "Forest"))
+
+        assertEquals("user-1", note.userId)
+        assertEquals("Forest", note.location)
+        assertEquals(note, repository.findByIdForUser("user-1", note.id))
+    }
+
+    @Test
+    fun `get notes returns only own notes`() = runBlocking {
         val repository = InMemoryNoteRepository()
         val createNoteUseCase = CreateNoteUseCase(repository)
         val getNotesUseCase = GetNotesUseCase(repository)
@@ -25,18 +37,45 @@ class NoteUseCaseTest {
     }
 
     @Test
-    fun `user cannot update or delete another user note`() = runBlocking {
+    fun `get note by id returns note only for owner`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
+        val getNoteByIdUseCase = GetNoteByIdUseCase(repository)
+        val note = createNoteUseCase.execute("owner", sampleInput())
+
+        assertEquals(note, getNoteByIdUseCase.execute("owner", note.id))
+        assertThrows(NotFoundException::class.java) {
+            runBlocking {
+                getNoteByIdUseCase.execute("stranger", note.id)
+            }
+        }
+    }
+
+    @Test
+    fun `update note only for owner`() = runBlocking {
         val repository = InMemoryNoteRepository()
         val createNoteUseCase = CreateNoteUseCase(repository)
         val updateNoteUseCase = UpdateNoteUseCase(repository)
+        val note = createNoteUseCase.execute("owner", sampleInput())
+
+        val updated = updateNoteUseCase.execute("owner", note.id, sampleInput(location = "Updated"))
+
+        assertEquals("Updated", updated.location)
+        assertThrows(NotFoundException::class.java) {
+            runBlocking {
+                updateNoteUseCase.execute("stranger", note.id, sampleInput(location = "Stranger update"))
+            }
+        }
+        assertEquals("Updated", repository.findByIdForUser("owner", note.id)?.location)
+    }
+
+    @Test
+    fun `delete note only for owner`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
         val deleteNoteUseCase = DeleteNoteUseCase(repository)
         val note = createNoteUseCase.execute("owner", sampleInput())
 
-        assertThrows(NotFoundException::class.java) {
-            runBlocking {
-                updateNoteUseCase.execute("stranger", note.id, sampleInput(location = "Updated"))
-            }
-        }
         assertThrows(NotFoundException::class.java) {
             runBlocking {
                 deleteNoteUseCase.execute("stranger", note.id)
@@ -44,6 +83,12 @@ class NoteUseCaseTest {
         }
 
         assertEquals(note, repository.findByIdForUser("owner", note.id))
+        deleteNoteUseCase.execute("owner", note.id)
+        assertThrows(NotFoundException::class.java) {
+            runBlocking {
+                deleteNoteUseCase.execute("owner", note.id)
+            }
+        }
     }
 
     @Test
