@@ -11,6 +11,17 @@ import com.huntersdiary.core.error.configureErrorHandling
 import com.huntersdiary.core.routing.healthRoutes
 import com.huntersdiary.core.security.JwtService
 import com.huntersdiary.core.security.configureSecurity
+import com.huntersdiary.notes.di.notesModule
+import com.huntersdiary.notes.domain.CreateNoteUseCase
+import com.huntersdiary.notes.domain.DeleteNoteUseCase
+import com.huntersdiary.notes.domain.GetNoteByIdUseCase
+import com.huntersdiary.notes.domain.GetNotesUseCase
+import com.huntersdiary.notes.domain.UpdateNoteUseCase
+import com.huntersdiary.notes.presentation.noteRoutes
+import com.huntersdiary.rules.di.rulesModule
+import com.huntersdiary.rules.domain.GetRuleByIdUseCase
+import com.huntersdiary.rules.domain.GetRulesUseCase
+import com.huntersdiary.rules.presentation.ruleRoutes
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -48,6 +59,8 @@ fun Application.module(config: AppConfig = AppConfigLoader.load()) {
         modules(
             coreModule(config),
             authModule,
+            notesModule,
+            rulesModule,
         )
     }
 
@@ -58,9 +71,27 @@ fun Application.module(config: AppConfig = AppConfigLoader.load()) {
 
     val registerUseCase by inject<RegisterUseCase>()
     val loginUseCase by inject<LoginUseCase>()
+    val createNoteUseCase by inject<CreateNoteUseCase>()
+    val getNotesUseCase by inject<GetNotesUseCase>()
+    val getNoteByIdUseCase by inject<GetNoteByIdUseCase>()
+    val updateNoteUseCase by inject<UpdateNoteUseCase>()
+    val deleteNoteUseCase by inject<DeleteNoteUseCase>()
+    val getRulesUseCase by inject<GetRulesUseCase>()
+    val getRuleByIdUseCase by inject<GetRuleByIdUseCase>()
 
     routing {
         healthRoutes()
         authRoutes(registerUseCase, loginUseCase)
+        noteRoutes(
+            createNoteUseCase = createNoteUseCase,
+            getNotesUseCase = getNotesUseCase,
+            getNoteByIdUseCase = getNoteByIdUseCase,
+            updateNoteUseCase = updateNoteUseCase,
+            deleteNoteUseCase = deleteNoteUseCase,
+        )
+        ruleRoutes(
+            getRulesUseCase = getRulesUseCase,
+            getRuleByIdUseCase = getRuleByIdUseCase,
+        )
     }
 }

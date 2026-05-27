@@ -9,19 +9,20 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.response.respond
+import java.util.UUID
 
 fun Application.configureSecurity(
     jwtConfig: JwtConfig,
     jwtService: JwtService,
 ) {
-    if (jwtConfig.secret.isNullOrBlank()) {
-        environment.log.warn("JWT authentication is not installed because JWT_SECRET is not configured")
-        return
-    }
+    val verificationSecret = jwtConfig.secret?.takeIf(String::isNotBlank)
+        ?: UUID.randomUUID().toString().also {
+            environment.log.warn("JWT_SECRET is not configured; protected endpoints will reject persisted tokens")
+        }
 
     install(Authentication) {
         jwt(JwtService.AUTH_PROVIDER) {
-            verifier(jwtService.verifier())
+            verifier(jwtService.verifier(verificationSecret))
             validate { credential ->
                 val userId = credential.payload.getClaim(JwtService.USER_ID_CLAIM).asString()
 

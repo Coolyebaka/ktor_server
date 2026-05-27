@@ -19,22 +19,22 @@ class JwtService(
             .withClaim(USER_ID_CLAIM, userId)
             .withIssuedAt(Date.from(now))
             .withExpiresAt(Date.from(now.plusSeconds(config.tokenTtlSeconds)))
-            .sign(algorithm())
+            .sign(algorithm(requireSecret()))
     }
 
-    fun verifier(): JWTVerifier =
-        JWT.require(algorithm())
+    fun verifier(secret: String = requireSecret()): JWTVerifier =
+        JWT.require(algorithm(secret))
             .withIssuer(config.issuer)
             .withAudience(config.audience)
             .build()
 
-    private fun algorithm(): Algorithm {
-        val secret = requireNotNull(config.secret) {
+    private fun requireSecret(): String =
+        requireNotNull(config.secret) {
             "JWT_SECRET is required to create or verify JWT tokens"
         }
 
-        return Algorithm.HMAC256(secret)
-    }
+    private fun algorithm(secret: String): Algorithm =
+        Algorithm.HMAC256(secret)
 
     companion object {
         const val AUTH_PROVIDER = "auth-jwt"

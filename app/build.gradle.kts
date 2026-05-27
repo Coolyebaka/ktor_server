@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.google.cloud.firestore)
     implementation(libs.koin.ktor)
     implementation(libs.koin.logger.slf4j)
+    implementation(libs.kotlinx.datetime)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
