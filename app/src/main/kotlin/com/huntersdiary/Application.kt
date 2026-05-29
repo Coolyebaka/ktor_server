@@ -39,6 +39,7 @@ fun main() {
 
     embeddedServer(
         factory = Netty,
+        host = config.host,
         port = config.port,
         module = { module(config) },
     ).start(wait = true)

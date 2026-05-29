@@ -1,10 +1,12 @@
 package com.huntersdiary.core.firestore
 
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.FirestoreOptions
 import com.huntersdiary.core.config.FirestoreConfig
 import java.io.Closeable
+import java.io.File
 import java.io.FileInputStream
 
 class FirestoreProvider(
@@ -19,20 +21,30 @@ class FirestoreProvider(
         }
 
     private fun createFirestore(): Firestore {
-        val projectId = requireNotNull(config.projectId) {
-            "FIRESTORE_PROJECT_ID is required to create Firestore client"
-        }
+        val credentials = loadCredentials()
+        val projectId = (credentials as? ServiceAccountCredentials)?.projectId
+            ?: error("Service account JSON must contain project_id")
 
-        val builder = FirestoreOptions.newBuilder()
-            .setProjectId(projectId)
+        val builder = FirestoreOptions.newBuilder().setProjectId(projectId)
 
-        config.credentialsPath?.let { path ->
-            FileInputStream(path).use { credentialsStream ->
-                builder.setCredentials(GoogleCredentials.fromStream(credentialsStream))
-            }
-        }
+        builder.setCredentials(credentials)
 
         return builder.build().service
+    }
+
+    private fun loadCredentials(): GoogleCredentials {
+        val credentialsPath = requireNotNull(config.credentialsPath) {
+            "FIRESTORE_CREDENTIALS_PATH is required to create Firestore client"
+        }
+        val credentialsFile = File(credentialsPath)
+
+        if (!credentialsFile.isFile) {
+            error("Firestore credentials file not found: $credentialsPath")
+        }
+
+        return FileInputStream(credentialsFile).use { credentialsStream ->
+            GoogleCredentials.fromStream(credentialsStream)
+        }
     }
 
     override fun close() {

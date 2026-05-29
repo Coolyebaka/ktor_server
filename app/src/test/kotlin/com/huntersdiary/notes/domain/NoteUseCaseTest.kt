@@ -1,8 +1,11 @@
 package com.huntersdiary.notes.domain
 
 import com.huntersdiary.core.error.NotFoundException
+import com.huntersdiary.core.error.ValidationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -18,6 +21,62 @@ class NoteUseCaseTest {
         assertEquals("user-1", note.userId)
         assertEquals("Forest", note.location)
         assertEquals(note, repository.findByIdForUser("user-1", note.id))
+    }
+
+    @Test
+    fun `create note allows empty date and time`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
+
+        val note = createNoteUseCase.execute(
+            "user-1",
+            sampleInput(date = null, time = null, location = null, target = null, text = null),
+        )
+
+        assertEquals(null, note.date)
+        assertEquals(null, note.time)
+        assertEquals(null, note.location)
+        assertEquals(null, note.target)
+        assertEquals(null, note.text)
+    }
+
+    @Test
+    fun `create note accepts client technical timestamps`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
+        val createdAt = Instant.parse("2026-05-27T10:00:00Z")
+        val updatedAt = Instant.parse("2026-05-27T11:00:00Z")
+
+        val note = createNoteUseCase.execute(
+            "user-1",
+            sampleInput(createdAt = createdAt, updatedAt = updatedAt),
+        )
+
+        assertEquals(createdAt, note.createdAt)
+        assertEquals(updatedAt, note.updatedAt)
+    }
+
+    @Test
+    fun `create note requires client technical timestamps`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
+
+        assertThrows(ValidationException::class.java) {
+            runBlocking {
+                createNoteUseCase.execute(
+                    "user-1",
+                    sampleInput(createdAt = null, updatedAt = Instant.parse("2026-05-27T11:00:00Z")),
+                )
+            }
+        }
+        assertThrows(ValidationException::class.java) {
+            runBlocking {
+                createNoteUseCase.execute(
+                    "user-1",
+                    sampleInput(createdAt = Instant.parse("2026-05-27T10:00:00Z"), updatedAt = null),
+                )
+            }
+        }
     }
 
     @Test
@@ -70,6 +129,33 @@ class NoteUseCaseTest {
     }
 
     @Test
+    fun `update note requires client technical timestamps`() = runBlocking {
+        val repository = InMemoryNoteRepository()
+        val createNoteUseCase = CreateNoteUseCase(repository)
+        val updateNoteUseCase = UpdateNoteUseCase(repository)
+        val note = createNoteUseCase.execute("owner", sampleInput())
+
+        assertThrows(ValidationException::class.java) {
+            runBlocking {
+                updateNoteUseCase.execute(
+                    "owner",
+                    note.id,
+                    sampleInput(createdAt = null, updatedAt = Instant.parse("2026-05-29T10:00:00Z")),
+                )
+            }
+        }
+        assertThrows(ValidationException::class.java) {
+            runBlocking {
+                updateNoteUseCase.execute(
+                    "owner",
+                    note.id,
+                    sampleInput(createdAt = note.createdAt, updatedAt = null),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `delete note only for owner`() = runBlocking {
         val repository = InMemoryNoteRepository()
         val createNoteUseCase = CreateNoteUseCase(repository)
@@ -92,7 +178,7 @@ class NoteUseCaseTest {
     }
 
     @Test
-    fun `search checks location target text and date string`() = runBlocking {
+    fun `search checks location target text date and time strings`() = runBlocking {
         val repository = InMemoryNoteRepository()
         val createNoteUseCase = CreateNoteUseCase(repository)
         val getNotesUseCase = GetNotesUseCase(repository)
@@ -100,24 +186,32 @@ class NoteUseCaseTest {
         createNoteUseCase.execute("user-1", sampleInput(location = "Northern forest"))
         createNoteUseCase.execute("user-1", sampleInput(target = "Duck"))
         createNoteUseCase.execute("user-1", sampleInput(text = "Saw fresh tracks"))
+        createNoteUseCase.execute("user-1", sampleInput(time = LocalTime.parse("18:45:00")))
 
         assertEquals(1, getNotesUseCase.execute("user-1", "northern").size)
         assertEquals(1, getNotesUseCase.execute("user-1", "duck").size)
         assertEquals(1, getNotesUseCase.execute("user-1", "tracks").size)
-        assertEquals(3, getNotesUseCase.execute("user-1", "2026-05-28").size)
+        assertEquals(4, getNotesUseCase.execute("user-1", "2026-05-28").size)
+        assertEquals(1, getNotesUseCase.execute("user-1", "18:45").size)
     }
 
     private fun sampleInput(
-        dateTime: Instant = Instant.parse("2026-05-28T12:00:00Z"),
-        location: String = "Field",
-        target: String = "Boar",
-        text: String = "Test note",
+        date: LocalDate? = LocalDate.parse("2026-05-28"),
+        time: LocalTime? = LocalTime.parse("12:00:00"),
+        location: String? = "Field",
+        target: String? = "Boar",
+        text: String? = "Test note",
+        createdAt: Instant? = Instant.parse("2026-05-28T13:00:00Z"),
+        updatedAt: Instant? = Instant.parse("2026-05-28T13:00:00Z"),
     ): NoteInput =
         NoteInput(
-            dateTime = dateTime,
+            date = date,
+            time = time,
             location = location,
             target = target,
             text = text,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
         )
 
     private class InMemoryNoteRepository : NoteRepository {
@@ -131,10 +225,11 @@ class NoteUseCaseTest {
                 userNotes
             } else {
                 userNotes.filter { note ->
-                    note.location.contains(normalizedQuery, ignoreCase = true) ||
-                        note.target.contains(normalizedQuery, ignoreCase = true) ||
-                        note.text.contains(normalizedQuery, ignoreCase = true) ||
-                        note.dateTime.toString().lowercase().contains(normalizedQuery)
+                    note.location?.contains(normalizedQuery, ignoreCase = true) == true ||
+                        note.target?.contains(normalizedQuery, ignoreCase = true) == true ||
+                        note.text?.contains(normalizedQuery, ignoreCase = true) == true ||
+                        note.date?.toString()?.lowercase()?.contains(normalizedQuery) == true ||
+                        note.time?.toString()?.lowercase()?.contains(normalizedQuery) == true
                 }
             }
         }
@@ -143,16 +238,16 @@ class NoteUseCaseTest {
             notes.firstOrNull { it.id == noteId && it.userId == userId }
 
         override suspend fun create(userId: String, input: NoteInput): Note {
-            val now = Instant.parse("2026-05-28T13:00:00Z")
             val note = Note(
                 id = "note-${notes.size + 1}",
                 userId = userId,
-                dateTime = input.dateTime,
+                date = input.date,
+                time = input.time,
                 location = input.location,
                 target = input.target,
                 text = input.text,
-                createdAt = now,
-                updatedAt = now,
+                createdAt = requireNotNull(input.createdAt),
+                updatedAt = requireNotNull(input.updatedAt),
             )
 
             notes += note
@@ -167,11 +262,13 @@ class NoteUseCaseTest {
             }
 
             val updated = notes[index].copy(
-                dateTime = input.dateTime,
+                date = input.date,
+                time = input.time,
                 location = input.location,
                 target = input.target,
                 text = input.text,
-                updatedAt = Instant.parse("2026-05-28T14:00:00Z"),
+                createdAt = requireNotNull(input.createdAt),
+                updatedAt = requireNotNull(input.updatedAt),
             )
             notes[index] = updated
 

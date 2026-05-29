@@ -1,6 +1,7 @@
 package com.huntersdiary.core.config
 
 data class AppConfig(
+    val host: String,
     val port: Int,
     val jwt: JwtConfig,
     val firestore: FirestoreConfig,
@@ -14,13 +15,13 @@ data class JwtConfig(
 )
 
 data class FirestoreConfig(
-    val projectId: String?,
     val credentialsPath: String?,
 )
 
 object AppConfigLoader {
     fun load(): AppConfig =
         AppConfig(
+            host = value("HOST") ?: DEFAULT_HOST,
             port = value("PORT")?.toIntOrNull() ?: DEFAULT_PORT,
             jwt = JwtConfig(
                 secret = value("JWT_SECRET")?.takeIf(String::isNotBlank),
@@ -29,7 +30,6 @@ object AppConfigLoader {
                 tokenTtlSeconds = value("JWT_TTL_SECONDS")?.toLongOrNull() ?: DEFAULT_JWT_TTL_SECONDS,
             ),
             firestore = FirestoreConfig(
-                projectId = value("FIRESTORE_PROJECT_ID")?.takeIf(String::isNotBlank),
                 credentialsPath = value("FIRESTORE_CREDENTIALS_PATH")?.takeIf(String::isNotBlank),
             ),
         )
@@ -37,6 +37,7 @@ object AppConfigLoader {
     private fun value(name: String): String? =
         System.getenv(name) ?: System.getProperty(name)
 
+    private const val DEFAULT_HOST = "localhost"
     private const val DEFAULT_PORT = 8080
     private const val DEFAULT_JWT_ISSUER = "hunter-diary"
     private const val DEFAULT_JWT_AUDIENCE = "hunter-diary-api"

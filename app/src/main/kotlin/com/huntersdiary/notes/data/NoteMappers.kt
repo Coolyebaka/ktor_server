@@ -4,12 +4,15 @@ import com.google.cloud.Timestamp
 import com.google.cloud.firestore.DocumentSnapshot
 import com.huntersdiary.notes.domain.Note
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 fun FirestoreNoteModel.toDomain(): Note =
     Note(
         id = id,
         userId = userId,
-        dateTime = dateTime.toKotlinInstant(),
+        date = date?.let(LocalDate::parse),
+        time = time?.let(LocalTime::parse),
         location = location,
         target = target,
         text = text,
@@ -23,20 +26,22 @@ fun DocumentSnapshot.toFirestoreNoteModel(): FirestoreNoteModel? {
     return FirestoreNoteModel(
         id = data["id"] as? String ?: id,
         userId = data["userId"] as? String ?: return null,
-        dateTime = data["dateTime"] as? Timestamp ?: return null,
-        location = data["location"] as? String ?: return null,
-        target = data["target"] as? String ?: return null,
-        text = data["text"] as? String ?: return null,
+        date = data["date"] as? String,
+        time = data["time"] as? String,
+        location = data["location"] as? String,
+        target = data["target"] as? String,
+        text = data["text"] as? String,
         createdAt = data["createdAt"] as? Timestamp ?: return null,
         updatedAt = data["updatedAt"] as? Timestamp ?: return null,
     )
 }
 
-fun FirestoreNoteModel.toFirestoreMap(): Map<String, Any> =
+fun FirestoreNoteModel.toFirestoreMap(): Map<String, Any?> =
     mapOf(
         "id" to id,
         "userId" to userId,
-        "dateTime" to dateTime,
+        "date" to date,
+        "time" to time,
         "location" to location,
         "target" to target,
         "text" to text,

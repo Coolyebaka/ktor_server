@@ -6,6 +6,7 @@
  */
 
 plugins {
+    alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
     application
@@ -42,6 +43,12 @@ java {
 
 application {
     mainClass = "com.huntersdiary.ApplicationKt"
+}
+
+ktor {
+    fatJar {
+        archiveFileName.set("app-all.jar")
+    }
 }
 
 tasks.named<Test>("test") {

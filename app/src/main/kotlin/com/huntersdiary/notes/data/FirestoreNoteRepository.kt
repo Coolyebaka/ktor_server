@@ -1,6 +1,5 @@
 package com.huntersdiary.notes.data
 
-import com.google.cloud.Timestamp
 import com.google.cloud.firestore.Firestore
 import com.huntersdiary.core.firestore.FirestoreProvider
 import com.huntersdiary.notes.domain.Note
@@ -20,7 +19,10 @@ class FirestoreNoteRepository(
                 .get()
                 .documents
                 .mapNotNull { it.toFirestoreNoteModel()?.toDomain() }
-                .sortedByDescending { it.dateTime }
+                .sortedWith(
+                    compareByDescending<Note> { it.date?.toString() ?: "" }
+                        .thenByDescending { it.time?.toString() ?: "" },
+                )
 
             query?.let { notes.filterByQuery(it) } ?: notes
         }
@@ -39,16 +41,18 @@ class FirestoreNoteRepository(
     override suspend fun create(userId: String, input: NoteInput): Note =
         withContext(Dispatchers.IO) {
             val document = notesCollection().document()
-            val now = Timestamp.now()
+            val createdAt = requireNotNull(input.createdAt).toFirestoreTimestamp()
+            val updatedAt = requireNotNull(input.updatedAt).toFirestoreTimestamp()
             val model = FirestoreNoteModel(
                 id = document.id,
                 userId = userId,
-                dateTime = input.dateTime.toFirestoreTimestamp(),
+                date = input.date?.toString(),
+                time = input.time?.toString(),
                 location = input.location,
                 target = input.target,
                 text = input.text,
-                createdAt = now,
-                updatedAt = now,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
             )
 
             document.set(model.toFirestoreMap()).get()
@@ -59,15 +63,18 @@ class FirestoreNoteRepository(
     override suspend fun update(userId: String, noteId: String, input: NoteInput): Note? =
         withContext(Dispatchers.IO) {
             val existing = findByIdForUser(userId, noteId) ?: return@withContext null
+            val createdAt = requireNotNull(input.createdAt).toFirestoreTimestamp()
+            val updatedAt = requireNotNull(input.updatedAt).toFirestoreTimestamp()
             val model = FirestoreNoteModel(
                 id = existing.id,
                 userId = existing.userId,
-                dateTime = input.dateTime.toFirestoreTimestamp(),
+                date = input.date?.toString(),
+                time = input.time?.toString(),
                 location = input.location,
                 target = input.target,
                 text = input.text,
-                createdAt = existing.createdAt.toFirestoreTimestamp(),
-                updatedAt = Timestamp.now(),
+                createdAt = createdAt,
+                updatedAt = updatedAt,
             )
 
             notesCollection().document(noteId).set(model.toFirestoreMap()).get()
@@ -87,10 +94,11 @@ class FirestoreNoteRepository(
         val normalizedQuery = query.lowercase()
 
         return filter { note ->
-            note.location.contains(normalizedQuery, ignoreCase = true) ||
-                note.target.contains(normalizedQuery, ignoreCase = true) ||
-                note.text.contains(normalizedQuery, ignoreCase = true) ||
-                note.dateTime.toString().lowercase().contains(normalizedQuery)
+                note.location?.contains(normalizedQuery, ignoreCase = true) == true ||
+                note.target?.contains(normalizedQuery, ignoreCase = true) == true ||
+                note.text?.contains(normalizedQuery, ignoreCase = true) == true ||
+                note.date?.toString()?.lowercase()?.contains(normalizedQuery) == true ||
+                note.time?.toString()?.lowercase()?.contains(normalizedQuery) == true
         }
     }
 

@@ -11,18 +11,27 @@
 - Google Cloud Firestore Java client
 - Gradle Kotlin DSL
 
-## Запуск
+## Настройка
 
-Для auth endpoints нужны JWT secret и Firestore настройки:
+### Адрес слушателя
+
+```bash
+export HOST="localhost"
+export PORT="8080"
+```
+
+`HOST` по умолчанию `localhost`, `PORT` по умолчанию `8080`.
+
+### Аутентификация
 
 ```bash
 export JWT_SECRET="change-me-to-a-long-random-secret"
-export FIRESTORE_PROJECT_ID="your-google-cloud-project-id"
-export FIRESTORE_CREDENTIALS_PATH="firebase-service-account.json"
-./gradlew :app:run
+export FIRESTORE_CREDENTIALS_PATH="/absolute/path/to/firebase-adminsdk-key.json"
 ```
 
-Без `JWT_SECRET` приложение стартует, но выпуск токенов недоступен.
+Без `JWT_SECRET` и `FIRESTORE_CREDENTIALS_PATH` приложение стартует, но выпуск токенов и запросы к бд недоступны.
+
+## Проверки API
 
 Проверка health endpoint:
 
@@ -35,8 +44,6 @@ curl http://localhost:8080/health
 ```json
 {"status":"ok"}
 ```
-
-## Auth API
 
 Регистрация:
 
@@ -75,8 +82,32 @@ curl -X POST http://localhost:8080/auth/login \
 }
 ```
 
-## Проверка
+## Сборка и запуск
 
 ```bash
 ./gradlew :app:build
+```
+
+```bash
+./gradlew run
+```
+
+### Fat jar
+
+Сборка исполняемого jar со всеми runtime-зависимостями через Ktor Gradle plugin:
+
+```bash
+./gradlew :app:buildFatJar
+```
+
+Файл будет создан здесь:
+
+```text
+app/build/libs/app-all.jar
+```
+
+Запуск:
+
+```bash
+java -jar app/build/libs/app-all.jar
 ```

@@ -1,7 +1,5 @@
 package com.huntersdiary.notes.domain
 
-import com.huntersdiary.core.error.ValidationException
-
 class CreateNoteUseCase(
     private val noteRepository: NoteRepository,
 ) {

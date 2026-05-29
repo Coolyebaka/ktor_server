@@ -3,19 +3,16 @@ package com.huntersdiary.notes.domain
 import com.huntersdiary.core.error.ValidationException
 
 fun NoteInput.validated(): NoteInput {
-    if (location.isBlank()) {
-        throw ValidationException("Location must not be blank")
+    if (createdAt == null) {
+        throw ValidationException("createdAt is required")
     }
-    if (target.isBlank()) {
-        throw ValidationException("Target must not be blank")
-    }
-    if (text.isBlank()) {
-        throw ValidationException("Text must not be blank")
+    if (updatedAt == null) {
+        throw ValidationException("updatedAt is required")
     }
 
     return copy(
-        location = location.trim(),
-        target = target.trim(),
-        text = text.trim(),
+        location = location?.trim()?.takeIf(String::isNotEmpty),
+        target = target?.trim()?.takeIf(String::isNotEmpty),
+        text = text?.trim()?.takeIf(String::isNotEmpty),
     )
 }
