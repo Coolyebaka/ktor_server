@@ -50,6 +50,7 @@ class AuthUseCaseTest {
                 useCase.execute("hunter@test.com", "another-password")
             }
         }
+        Unit
     }
 
     @Test
@@ -80,6 +81,7 @@ class AuthUseCaseTest {
                 loginUseCase.execute("hunter@test.com", "wrong-password")
             }
         }
+        Unit
     }
 
     private class InMemoryAuthRepository : AuthRepository {

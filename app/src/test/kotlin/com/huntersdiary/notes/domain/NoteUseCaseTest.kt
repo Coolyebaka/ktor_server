@@ -77,6 +77,7 @@ class NoteUseCaseTest {
                 )
             }
         }
+        Unit
     }
 
     @Test
@@ -108,6 +109,7 @@ class NoteUseCaseTest {
                 getNoteByIdUseCase.execute("stranger", note.id)
             }
         }
+        Unit
     }
 
     @Test
@@ -153,6 +155,7 @@ class NoteUseCaseTest {
                 )
             }
         }
+        Unit
     }
 
     @Test
@@ -175,6 +178,7 @@ class NoteUseCaseTest {
                 deleteNoteUseCase.execute("owner", note.id)
             }
         }
+        Unit
     }
 
     @Test

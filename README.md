@@ -31,57 +31,6 @@ export FIRESTORE_CREDENTIALS_PATH="/absolute/path/to/firebase-adminsdk-key.json"
 
 Без `JWT_SECRET` и `FIRESTORE_CREDENTIALS_PATH` приложение стартует, но выпуск токенов и запросы к бд недоступны.
 
-## Проверки API
-
-Проверка health endpoint:
-
-```bash
-curl http://localhost:8080/health
-```
-
-Ожидаемый ответ:
-
-```json
-{"status":"ok"}
-```
-
-Регистрация:
-
-```bash
-curl -X POST http://localhost:8080/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"hunter@example.com","password":"secret-password"}'
-```
-
-Авторизация:
-
-```bash
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"hunter@example.com","password":"secret-password"}'
-```
-
-Формат успешного ответа:
-
-```json
-{
-  "token": "...",
-  "user": {
-    "id": "...",
-    "email": "hunter@example.com"
-  }
-}
-```
-
-Формат ошибки:
-
-```json
-{
-  "code": "...",
-  "message": "..."
-}
-```
-
 ## Сборка и запуск
 
 ```bash
